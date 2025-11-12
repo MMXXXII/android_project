@@ -21,7 +21,6 @@
             </intent-filter>
         </activity>
 
-        <!-- Добавьте DishListActivity -->
         <activity android:name=".DishListActivity" android:exported="true" />
     </application>
 

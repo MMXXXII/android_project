@@ -29,7 +29,6 @@
         android:textSize="14sp"
         android:layout_below="@id/tvDishType" />
 
-    <!-- Добавьте TextView для отображения описания -->
     <TextView
         android:id="@+id/tvDishDescription"
         android:layout_width="wrap_content"
