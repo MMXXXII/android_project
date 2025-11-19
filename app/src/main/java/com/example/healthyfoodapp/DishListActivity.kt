@@ -1,17 +1,16 @@
 package com.example.healthyfoodapp
 
-import androidx.appcompat.app.AppCompatActivity
-import android.os.Bundle
-import android.widget.Button
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import android.content.Context
 import android.content.SharedPreferences
-import android.view.LayoutInflater
-import android.view.ViewGroup
-import android.widget.TextView
+import android.os.Bundle
+import android.view.*
+import android.widget.*
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 
-data class Dish(val name: String, val type: String, val calories: String, val description: String)
+data class Dish(var name: String, var type: String, var calories: String, var description: String)
 
 class DishListActivity : AppCompatActivity() {
 
@@ -30,8 +29,8 @@ class DishListActivity : AppCompatActivity() {
 
         loadDishesFromPreferences()
 
-        adapter = DishAdapter(dishes)
-        recyclerView.layoutManager = LinearLayoutManager(this)
+        adapter = DishAdapter(dishes, sharedPreferences)
+        recyclerView.layoutManager = GridLayoutManager(this, 2)
         recyclerView.adapter = adapter
 
         btnBack.setOnClickListener {
@@ -41,7 +40,6 @@ class DishListActivity : AppCompatActivity() {
 
     private fun loadDishesFromPreferences() {
         val saved = sharedPreferences.getString("dishes", "")
-
         if (!saved.isNullOrEmpty()) {
             val items = saved.split("|")
             for (dish in items) {
@@ -52,39 +50,90 @@ class DishListActivity : AppCompatActivity() {
             }
         }
     }
-}
 
+    // Метод для редактирования блюда
+    fun editDish(position: Int) {
+        val dish = dishes[position]
+        val dialogView = layoutInflater.inflate(R.layout.dialog_edit_dish, null)
 
-class DishAdapter(
-    private val dishes: List<Dish>
-) : RecyclerView.Adapter<DishAdapter.DishViewHolder>() {
+        val etName = dialogView.findViewById<EditText>(R.id.etEditName)
+        val etCalories = dialogView.findViewById<EditText>(R.id.etEditCalories)
+        val etDescription = dialogView.findViewById<EditText>(R.id.etEditDescription)
 
-    inner class DishViewHolder(itemView: android.view.View) : RecyclerView.ViewHolder(itemView) {
-        fun bind(dish: Dish) {
-            val tvName = itemView.findViewById<TextView>(R.id.tvDishName)
-            val tvType = itemView.findViewById<TextView>(R.id.tvDishType)
-            val tvCalories = itemView.findViewById<TextView>(R.id.tvDishCalories)
-            val tvDescription = itemView.findViewById<TextView>(R.id.tvDishDescription)
+        etName.setText(dish.name)
+        etCalories.setText(dish.calories)
+        etDescription.setText(dish.description)
 
-            tvName.text = dish.name
-            tvType.text = "Тип: ${dish.type}"
-            tvCalories.text = "Калории: ${dish.calories} ккал"
-            tvDescription.text = "Описание: ${dish.description}"
+        AlertDialog.Builder(this)
+            .setTitle("Редактировать блюдо")
+            .setView(dialogView)
+            .setPositiveButton("Сохранить") { _, _ ->
+                dish.name = etName.text.toString()
+                dish.calories = etCalories.text.toString()
+                dish.description = etDescription.text.toString()
+                adapter.notifyItemChanged(position)
+                adapter.saveDishesToPreferences()
+            }
+            .setNegativeButton("Отмена", null)
+            .show()
+    }
+
+    class DishAdapter(
+        private val dishes: MutableList<Dish>,
+        private val sharedPreferences: SharedPreferences
+    ) : RecyclerView.Adapter<DishAdapter.DishViewHolder>() {
+
+        inner class DishViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+            fun bind(dish: Dish) {
+                val tvName = itemView.findViewById<TextView>(R.id.tvDishName)
+                val tvType = itemView.findViewById<TextView>(R.id.tvDishType)
+                val tvCalories = itemView.findViewById<TextView>(R.id.tvDishCalories)
+                val tvDescription = itemView.findViewById<TextView>(R.id.tvDishDescription)
+                val btnDelete = itemView.findViewById<Button>(R.id.btnDeleteDish)
+
+                tvName.text = dish.name
+                tvType.text = "Тип: ${dish.type}"
+                tvCalories.text = "Калории: ${dish.calories} ккал"
+                tvDescription.text = "Описание: ${dish.description}"
+
+                // Удаление элемента
+                btnDelete.setOnClickListener {
+                    val position = adapterPosition
+                    if (position != RecyclerView.NO_POSITION) {
+                        dishes.removeAt(position)
+                        notifyItemRemoved(position)
+                        saveDishesToPreferences()
+                    }
+                }
+
+                // Контекстное меню для редактирования
+                itemView.setOnCreateContextMenuListener { menu, _, _ ->
+                    menu.add("Редактировать").setOnMenuItemClickListener {
+                        (itemView.context as? DishListActivity)?.editDish(adapterPosition)
+                        true
+                    }
+                }
+            }
         }
-    }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DishViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_dish, parent, false)
-        return DishViewHolder(view)
-    }
+        fun saveDishesToPreferences() {
+            val editor = sharedPreferences.edit()
+            val dishString = dishes.joinToString("|") {
+                "${it.name},${it.type},${it.calories},${it.description}"
+            }
+            editor.putString("dishes", dishString)
+            editor.apply()
+        }
 
-    override fun onBindViewHolder(holder: DishViewHolder, position: Int) {
-        holder.bind(dishes[position])
-    }
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DishViewHolder {
+            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_dish, parent, false)
+            return DishViewHolder(view)
+        }
 
-    override fun getItemCount(): Int {
-        return dishes.size
+        override fun onBindViewHolder(holder: DishViewHolder, position: Int) {
+            holder.bind(dishes[position])
+        }
+
+        override fun getItemCount(): Int = dishes.size
     }
 }
-
