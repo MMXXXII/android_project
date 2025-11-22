@@ -14,4 +14,25 @@
         android:id="@+id/nav_exit"
         android:title="Выход"
         android:icon="@android:drawable/ic_menu_close_clear_cancel" />
+
+    <item
+        android:id="@+id/nav_save_csv"
+        android:title="Сохранить CSV" />
+
+    <item
+        android:id="@+id/nav_load_csv"
+        android:title="Загрузить CSV" />
+
+    <item
+        android:id="@+id/nav_save_bin"
+        android:title="Сохранить бинарно" />
+
+    <item
+        android:id="@+id/nav_load_bin"
+        android:title="Загрузить из бинарного" />
+
+    <item
+        android:id="@+id/nav_save_media"
+        android:title="Экспорт в MediaStore" />
+
 </menu>
