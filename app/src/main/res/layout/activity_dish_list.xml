@@ -14,6 +14,7 @@
         android:textStyle="bold"
         android:layout_marginBottom="16dp" />
 
+    <!-- RecyclerView для отображения списка блюд -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvDishList"
         android:layout_width="match_parent"

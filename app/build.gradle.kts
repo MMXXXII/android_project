@@ -48,4 +48,6 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.recyclerview:recyclerview:1.3.2")
     implementation("androidx.drawerlayout:drawerlayout:1.2.0")
+    implementation(libs.androidx.mediarouter)
+    implementation("org.greenrobot:greendao:3.3.0")
 }
