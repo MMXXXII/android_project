@@ -26,19 +26,16 @@ class DishListActivity : AppCompatActivity() {
         dbHelper = DishDatabaseHelper(this)
         dbHelper.open()
 
-        // Инициализация RecyclerView и кнопки назад
         val recyclerView = findViewById<RecyclerView>(R.id.rvDishList)
         val btnBack = findViewById<Button>(R.id.btnBack)
 
-        // Загрузка данных из базы
         loadDishesFromDatabase()
 
-        // Настройка адаптера для RecyclerView
         adapter = DishAdapter(dishes, dbHelper)  // Передайте dbHelper
         recyclerView.layoutManager = GridLayoutManager(this, 2)
         recyclerView.adapter = adapter
 
-        // Обработчик нажатия кнопки "Назад"
+
         btnBack.setOnClickListener { finish() }
     }
 
@@ -67,7 +64,8 @@ class DishListActivity : AppCompatActivity() {
                 dish.name = etName.text.toString()
                 dish.calories = etCalories.text.toString()
                 dish.description = etDescription.text.toString()
-                dbHelper.updateDish(dish.id, dish.name, dish.type, dish.calories, dish.description)
+                dbHelper.updateDish(dish.id, dish.name, dish.type, dish.calories, dish.description, dish.categoryId)
+
                 adapter.notifyItemChanged(position)
             }
             .setNegativeButton("Отмена", null)

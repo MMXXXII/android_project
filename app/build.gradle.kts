@@ -49,5 +49,7 @@ dependencies {
     implementation("androidx.recyclerview:recyclerview:1.3.2")
     implementation("androidx.drawerlayout:drawerlayout:1.2.0")
     implementation(libs.androidx.mediarouter)
-    implementation("org.greenrobot:greendao:3.3.0")
+    implementation(libs.androidx.monitor)
+    implementation(libs.androidx.junit.ktx)
+    androidTestImplementation(libs.junit.junit)
 }

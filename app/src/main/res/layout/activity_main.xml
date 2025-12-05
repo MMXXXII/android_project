@@ -61,7 +61,7 @@
                 android:layout_marginTop="8dp" />
 
             <RadioGroup
-                android:id="@+id/rgType"
+                android:id="@+id/rgCategory"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_below="@id/tvType"
@@ -70,23 +70,29 @@
                 android:orientation="horizontal">
 
                 <RadioButton
-                    android:id="@+id/rbBreakfast"
+                    android:id="@+id/rbCategoryBreakfast"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:checked="true"
                     android:text="Завтрак" />
 
                 <RadioButton
-                    android:id="@+id/rbLunch"
+                    android:id="@+id/rbCategoryLunch"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Обед" />
 
                 <RadioButton
-                    android:id="@+id/rbDinner"
+                    android:id="@+id/rbCategoryDinner"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Ужин" />
+
+                <RadioButton
+                    android:id="@+id/rbCategorySnack"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Закуски" />
             </RadioGroup>
 
             <TextView
@@ -94,7 +100,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Калорийность (ккал):"
-                android:layout_below="@id/rgType" />
+                android:layout_below="@id/rgCategory" />
 
             <EditText
                 android:id="@+id/etCalories"
@@ -162,3 +168,6 @@
         android:fitsSystemWindows="true" />
 
 </androidx.drawerlayout.widget.DrawerLayout>
+
+
+

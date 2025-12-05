@@ -2,9 +2,7 @@ package com.example.healthyfoodapp
 
 import android.Manifest
 import android.content.ContentValues
-import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -35,7 +33,7 @@ class MainActivity : AppCompatActivity() {
         val etName = findViewById<EditText>(R.id.etName)
         val etCalories = findViewById<EditText>(R.id.etCalories)
         val etDescription = findViewById<EditText>(R.id.etDescription)
-        val rgType = findViewById<RadioGroup>(R.id.rgType)
+        val rgCategory = findViewById<RadioGroup>(R.id.rgCategory)  // ✅ Правильный ID
         val tvResult = findViewById<TextView>(R.id.tvResult)
 
         val btnSave = findViewById<Button>(R.id.btnSave)
@@ -48,64 +46,47 @@ class MainActivity : AppCompatActivity() {
 
         navigationView.setNavigationItemSelectedListener { item ->
             when (item.itemId) {
-                R.id.nav_add_dish -> {
-                    drawerLayout.closeDrawers()
-                    true
-                }
+                R.id.nav_add_dish -> { drawerLayout.closeDrawers(); true }
                 R.id.nav_my_catalog -> {
                     drawerLayout.closeDrawers()
                     startActivity(Intent(this, DishListActivity::class.java))
                     true
                 }
-                R.id.nav_save_csv -> {
-                    saveCSV()
-                    true
-                }
-                R.id.nav_load_csv -> {
-                    loadCSV()
-                    true
-                }
-                R.id.nav_save_bin -> {
-                    saveBinary()
-                    true
-                }
-                R.id.nav_load_bin -> {
-                    loadBinary()
-                    true
-                }
-                R.id.nav_save_media -> {
-                    checkPermissionAndSaveMedia()
-                    true
-                }
-                R.id.nav_exit -> {
-                    finish()
-                    true
-                }
+                R.id.nav_save_csv -> { saveCSV(); true }
+                R.id.nav_load_csv -> { loadCSV(); true }
+                R.id.nav_save_bin -> { saveBinary(); true }
+                R.id.nav_load_bin -> { loadBinary(); true }
+                R.id.nav_save_media -> { checkPermissionAndSaveMedia(); true }
+                R.id.nav_exit -> { finish(); true }
                 else -> false
             }
         }
 
         btnSave.setOnClickListener {
-            val name = etName.text.toString()
-            val calories = etCalories.text.toString()
-            val description = etDescription.text.toString()
+            val name = etName.text.toString().trim()
+            val calories = etCalories.text.toString().trim()
+            val description = etDescription.text.toString().trim()
 
-            if (name == "" || calories == "") {
+            if (name.isEmpty() || calories.isEmpty()) {
                 Toast.makeText(this, "Заполните все поля", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
-            val selectedTypeId = rgType.checkedRadioButtonId
-            val rb = findViewById<RadioButton>(selectedTypeId)
-            val type = rb.text.toString()
+            val selectedCategoryId = rgCategory.checkedRadioButtonId
+            val rb = findViewById<RadioButton>(selectedCategoryId)
+            val categoryName = rb.text.toString()
 
-            dbHelper.addDish(name, type, calories, description)
+            // Получаем или создаём categoryId
+            val categoryId = dbHelper.getCategoryIdByName(categoryName) ?: dbHelper.addCategory(categoryName)
+
+            // Сохраняем блюдо (type = categoryName)
+            dbHelper.addDish(name, categoryName, calories, description, categoryId)
 
             tvResult.text = "Блюдо сохранено!"
 
-            etName.setText("")
-            etCalories.setText("")
-            etDescription.setText("")
+            etName.text.clear()
+            etCalories.text.clear()
+            etDescription.text.clear()
         }
 
         btnGoToDishList.setOnClickListener {
@@ -128,19 +109,12 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "CSV не найден", Toast.LENGTH_SHORT).show()
             return
         }
-
         val text = file.readText()
         val lines = text.split("\n").filter { it.isNotBlank() }
-
         for (line in lines) {
             val parts = line.split(",")
             if (parts.size >= 4) {
-                dbHelper.addDish(
-                    parts[0],      // name
-                    parts[1],      // type
-                    parts[2],      // calories
-                    parts.getOrNull(3) ?: ""  // description
-                )
+                dbHelper.addDish(parts[0], parts[1], parts[2], parts.getOrNull(3) ?: "", null)
             }
         }
         Toast.makeText(this, "CSV загружен!", Toast.LENGTH_SHORT).show()
@@ -161,19 +135,12 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Бинарный файл не найден", Toast.LENGTH_SHORT).show()
             return
         }
-
         val data = ObjectInputStream(FileInputStream(file)).use { it.readObject() as String }
         val items = data.split("|").filter { it.isNotBlank() }
-
         for (item in items) {
             val parts = item.split(",")
             if (parts.size >= 4) {
-                dbHelper.addDish(
-                    parts[0],      // name
-                    parts[1],      // type
-                    parts[2],      // calories
-                    parts.getOrNull(3) ?: ""  // description
-                )
+                dbHelper.addDish(parts[0], parts[1], parts[2], parts.getOrNull(3) ?: "", null)
             }
         }
         Toast.makeText(this, "Загружено из бинарного файла!", Toast.LENGTH_SHORT).show()
@@ -181,16 +148,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkPermissionAndSaveMedia() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-            if (ActivityCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
-                    100
-                )
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 100)
                 return
             }
         }
@@ -198,9 +157,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun saveToMediaStore() {
-        val data = dbHelper.getAllDishes().joinToString("\n") {
-            "${it.name},${it.type},${it.calories},${it.description}"
-        }
+        val data = dbHelper.getAllDishes().joinToString("\n") { "${it.name},${it.type},${it.calories},${it.description}" }
         val filename = "healthy_dishes_${System.currentTimeMillis()}.txt"
         val resolver = contentResolver
         val values = ContentValues().apply {
@@ -208,10 +165,7 @@ class MainActivity : AppCompatActivity() {
             put(MediaStore.Downloads.MIME_TYPE, "text/plain")
         }
         val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
-        uri?.let {
-            resolver.openOutputStream(uri)?.use { it.write(data.toByteArray()) }
-        }
+        uri?.let { resolver.openOutputStream(it)?.use { it.write(data.toByteArray()) } }
         Toast.makeText(this, "Файл сохранён в Загрузки", Toast.LENGTH_SHORT).show()
     }
 }
-
