@@ -37,11 +37,97 @@
                 android:layout_marginBottom="16dp" />
 
             <TextView
+                android:id="@+id/tvThreadStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Поток: не запущен"
+                android:textSize="14sp"
+                android:layout_below="@id/tvTitle"
+                android:layout_marginBottom="8dp"
+                android:padding="4dp"
+                android:background="#FFF3E0" />
+
+            <LinearLayout
+                android:id="@+id/llThreadButtons"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_below="@id/tvThreadStatus"
+                android:layout_marginBottom="16dp">
+
+                <Button
+                    android:id="@+id/btnProcessDataThread"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Поток"
+                    android:textSize="12sp"
+                    android:layout_marginEnd="4dp" />
+
+                <Button
+                    android:id="@+id/btnCancelThread"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Отмена"
+                    android:textSize="12sp"
+                    android:layout_marginStart="4dp"
+                    android:backgroundTint="#FF5252" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvCoroutineStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Корутина: не запущена"
+                android:textSize="14sp"
+                android:layout_below="@id/llThreadButtons"
+                android:layout_marginBottom="8dp"
+                android:padding="4dp"
+                android:background="#E8F5E9" />
+
+            <LinearLayout
+                android:id="@+id/llCoroutineButtons"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_below="@id/tvCoroutineStatus"
+                android:layout_marginBottom="16dp">
+
+                <Button
+                    android:id="@+id/btnProcessDataCoroutine"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Корутина"
+                    android:textSize="12sp"
+                    android:layout_marginEnd="4dp" />
+
+                <Button
+                    android:id="@+id/btnCancelCoroutine"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Отмена"
+                    android:textSize="12sp"
+                    android:layout_marginStart="4dp"
+                    android:backgroundTint="#FF5252" />
+            </LinearLayout>
+
+            <View
+                android:id="@+id/divider"
+                android:layout_width="match_parent"
+                android:layout_height="2dp"
+                android:background="#BDBDBD"
+                android:layout_below="@id/llCoroutineButtons"
+                android:layout_marginBottom="16dp" />
+
+            <TextView
                 android:id="@+id/tvName"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Название блюда:"
-                android:layout_below="@id/tvTitle"
+                android:layout_below="@id/divider"
                 android:layout_marginTop="8dp" />
 
             <EditText
@@ -65,7 +151,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_below="@id/tvType"
-                android:layout_marginTop="0dp"
                 android:layout_marginBottom="16dp"
                 android:orientation="horizontal">
 
@@ -168,6 +253,3 @@
         android:fitsSystemWindows="true" />
 
 </androidx.drawerlayout.widget.DrawerLayout>
-
-
-
