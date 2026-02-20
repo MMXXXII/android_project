@@ -14,19 +14,19 @@ import androidx.drawerlayout.widget.DrawerLayout
 import com.google.android.material.navigation.NavigationView
 import kotlinx.coroutines.*
 import java.io.*
-import kotlin.coroutines.CoroutineContext
+import androidx.lifecycle.lifecycleScope
+import kotlin.random.Random
 
-class MainActivity : AppCompatActivity(), CoroutineScope {
+
+class MainActivity : AppCompatActivity() {
 
     private lateinit var dbHelper: DishDatabaseHelper
     private lateinit var drawerLayout: DrawerLayout
     private lateinit var navigationView: NavigationView
     private lateinit var tvThreadStatus: TextView
     private lateinit var tvCoroutineStatus: TextView
+    private lateinit var btnCancelCoroutine: Button
 
-    private val job = Job()
-    override val coroutineContext: CoroutineContext
-        get() = Dispatchers.Main + job
 
     private var workerThread: Thread? = null
     private var dataProcessingJob: Job? = null
@@ -55,7 +55,9 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
         val btnProcessDataThread = findViewById<Button>(R.id.btnProcessDataThread)
         val btnProcessDataCoroutine = findViewById<Button>(R.id.btnProcessDataCoroutine)
         val btnCancelThread = findViewById<Button>(R.id.btnCancelThread)
-        val btnCancelCoroutine = findViewById<Button>(R.id.btnCancelCoroutine)
+
+        btnCancelCoroutine = findViewById<Button>(R.id.btnCancelCoroutine)
+        btnCancelCoroutine.isEnabled = false
 
         btnMenu.setOnClickListener {
             drawerLayout.openDrawer(navigationView)
@@ -107,11 +109,11 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
         }
 
         btnProcessDataThread.setOnClickListener {
-            sequentialThreadProcessing()
+            startThreadProcessing()
         }
 
         btnProcessDataCoroutine.setOnClickListener {
-            sequentialCoroutineProcessing()
+            coroutinePhase1()
         }
 
         btnCancelThread.setOnClickListener {
@@ -123,44 +125,46 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
         }
     }
 
-    private fun sequentialThreadProcessing() {
-        updateThreadStatus("Поток запущен...")
-
+    private fun startThreadProcessing() {
+        workerThread?.interrupt()
         workerThread = Thread {
             try {
-                updateThreadStatus("Поток 1: Подсчет калорий...")
-                Thread.sleep(2000)
-
-                val dishes = dbHelper.getAllDishes()
-                var totalCalories = 0
-
-                for (dish in dishes) {
-                    if (Thread.currentThread().isInterrupted) {
-                        updateThreadStatus("Поток отменен")
-                        return@Thread
-                    }
-                    totalCalories += dish.calories.toIntOrNull() ?: 0
-                    Thread.sleep(100)
-                }
-
-                updateThreadStatus("Поток 1 завершен. Калорий: $totalCalories")
-
-                Thread.sleep(1000)
-                updateThreadStatus("Поток 2: Расчет средней...")
-                Thread.sleep(2000)
-
-                val dishCount = dishes.size
-                val averageCalories = if (dishCount > 0) totalCalories / dishCount else 0
-
-                updateThreadStatus("Готово! Средняя калорийность: $averageCalories ккал")
-
+                val dishes = threadPhase1()
+                threadPhase2(dishes)
             } catch (e: InterruptedException) {
-                updateThreadStatus("Поток прерван")
+                updateThreadStatus("Поток отменен")
             } catch (e: Exception) {
                 updateThreadStatus("Ошибка: ${e.message}")
             }
         }
         workerThread?.start()
+    }
+
+    private fun threadPhase1(): List<Dish> {
+        updateThreadStatus("Поток 1: Подсчет калорий...")
+        Thread.sleep(2000)
+
+        val dishes = dbHelper.getAllDishes()
+        var totalCalories = 0
+        for (dish in dishes) {
+            if (Thread.currentThread().isInterrupted) throw InterruptedException()
+            totalCalories += dish.calories.toIntOrNull() ?: 0
+            Thread.sleep(100)
+        }
+
+        updateThreadStatus("Поток 1 завершен. Калорий: $totalCalories")
+        Thread.sleep(1000)
+        return dishes
+    }
+
+    private fun threadPhase2(dishes: List<Dish>) {
+        updateThreadStatus("Поток 2: Расчет средней...")
+        Thread.sleep(2000)
+
+        val totalCalories = dishes.sumOf { it.calories.toIntOrNull() ?: 0 }
+        val average = if (dishes.isNotEmpty()) totalCalories / dishes.size else 0
+
+        updateThreadStatus("Готово! Средняя калорийность: $average ккал")
     }
 
     private fun cancelThreadProcessing() {
@@ -189,60 +193,80 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
         }.start()
     }
 
-    private fun sequentialCoroutineProcessing() {
+    private fun coroutinePhase1() {
         dataProcessingJob?.cancel()
+        btnCancelCoroutine.isEnabled = true
 
-        dataProcessingJob = launch {
+        dataProcessingJob = lifecycleScope.launch(Dispatchers.Default) {
             try {
-                updateCoroutineStatusUI("Корутина запущена...")
+                withContext(Dispatchers.Main) {
+                    updateCoroutineStatusUI("Корутина 1: Загрузка данных...")
+                }
+
+                if (Random.nextInt(100) < 10) {
+                    throw RuntimeException("Случайная ошибка загрузки данных")
+                }
 
                 val dishes = withContext(Dispatchers.IO) {
-                    withContext(Dispatchers.Main) {
-                        updateCoroutineStatusUI("Корутина 1 (IO): Загрузка данных из БД...")
-                    }
                     delay(2000)
                     dbHelper.getAllDishes()
                 }
 
-                updateCoroutineStatusUI("Корутина 1 завершена. Блюд: ${dishes.size}")
-                delay(1000)
-
-                val result = withContext(Dispatchers.Default) {
-                    withContext(Dispatchers.Main) {
-                        updateCoroutineStatusUI("Корутина 2 (Default): Анализ данных...")
-                    }
-                    delay(2000)
-
-                    var totalCalories = 0
-                    var maxCalories = 0
-                    var maxCalorieDish = ""
-
-                    for (dish in dishes) {
-                        ensureActive()
-
-                        val calories = dish.calories.toIntOrNull() ?: 0
-                        totalCalories += calories
-
-                        if (calories > maxCalories) {
-                            maxCalories = calories
-                            maxCalorieDish = dish.name
-                        }
-
-                        delay(100)
-                    }
-
-                    val average = if (dishes.isNotEmpty()) totalCalories / dishes.size else 0
-                    AnalysisResult(totalCalories, average, maxCalories, maxCalorieDish)
+                withContext(Dispatchers.Main) {
+                    updateCoroutineStatusUI("Корутина 1 завершена. Блюд: ${dishes.size}")
                 }
 
-                updateCoroutineStatusUI(
-                    "Готово! Средняя: ${result.average} ккал, Макс: ${result.maxCalories} (${result.maxCalorieDish})"
-                )
+                delay(500)
+
+                coroutinePhase2(dishes)
 
             } catch (e: CancellationException) {
-                updateCoroutineStatusUI("Корутина отменена")
+                withContext(Dispatchers.Main) { updateCoroutineStatusUI("Корутина 1 отменена") }
+                btnCancelCoroutine.isEnabled = false
             } catch (e: Exception) {
-                updateCoroutineStatusUI("Ошибка: ${e.message}")
+                withContext(Dispatchers.Main) { updateCoroutineStatusUI("Ошибка: ${e.message}") }
+                btnCancelCoroutine.isEnabled = false
+            }
+        }
+    }
+
+    private fun coroutinePhase2(dishes: List<Dish>) {
+        dataProcessingJob = lifecycleScope.launch(Dispatchers.Default) {
+            try {
+                withContext(Dispatchers.Main) {
+                    updateCoroutineStatusUI("Корутина 2: Подсчет калорий...")
+                }
+
+                var totalCalories = 0
+                var maxCalories = 0
+                var maxCalorieDish = ""
+
+                for (dish in dishes) {
+                    ensureActive()
+                    val calories = dish.calories.toIntOrNull() ?: 0
+                    totalCalories += calories
+
+                    if (calories > maxCalories) {
+                        maxCalories = calories
+                        maxCalorieDish = dish.name
+                    }
+
+                    delay(100)
+                }
+
+                val average = if (dishes.isNotEmpty()) totalCalories / dishes.size else 0
+
+                withContext(Dispatchers.Main) {
+                    updateCoroutineStatusUI(
+                        "Готово! Средняя: $average ккал, Макс: $maxCalories ($maxCalorieDish)"
+                    )
+                    btnCancelCoroutine.isEnabled = false
+                }
+
+            } catch (e: CancellationException) {
+                withContext(Dispatchers.Main) { updateCoroutineStatusUI("Корутина 2 отменена") }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) { updateCoroutineStatusUI("Ошибка: ${e.message}") }
             }
         }
     }
@@ -257,7 +281,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
     }
 
     private fun processWithCoroutine(action: suspend () -> Unit) {
-        launch {
+        lifecycleScope.launch {
             try {
                 action()
                 Toast.makeText(this@MainActivity, "Операция завершена", Toast.LENGTH_SHORT).show()
@@ -266,6 +290,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
             }
         }
     }
+
 
     private fun saveCSV() {
         val data = dbHelper.getAllDishes().joinToString("\n") {
@@ -347,14 +372,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope {
 
     override fun onDestroy() {
         super.onDestroy()
-        job.cancel()
         workerThread?.interrupt()
     }
 
-    data class AnalysisResult(
-        val totalCalories: Int,
-        val average: Int,
-        val maxCalories: Int,
-        val maxCalorieDish: String
-    )
 }
