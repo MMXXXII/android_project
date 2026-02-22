@@ -11,6 +11,11 @@
         android:icon="@android:drawable/ic_menu_view" />
 
     <item
+        android:id="@+id/nav_search_api"
+        android:title="Поиск блюд (API)"
+        android:icon="@android:drawable/ic_menu_search" />
+
+    <item
         android:id="@+id/nav_exit"
         android:title="Выход"
         android:icon="@android:drawable/ic_menu_close_clear_cancel" />

@@ -27,7 +27,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvCoroutineStatus: TextView
     private lateinit var btnCancelCoroutine: Button
 
-
     private var workerThread: Thread? = null
     private var dataProcessingJob: Job? = null
 
@@ -69,6 +68,11 @@ class MainActivity : AppCompatActivity() {
                 R.id.nav_my_catalog -> {
                     drawerLayout.closeDrawers()
                     startActivity(Intent(this, DishListActivity::class.java))
+                    true
+                }
+                R.id.nav_search_api -> {
+                    drawerLayout.closeDrawers()
+                    startActivity(Intent(this, MealSearchActivity::class.java))
                     true
                 }
                 R.id.nav_save_csv -> { processInThread { saveCSV() }; true }
@@ -291,21 +295,18 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-
     private fun saveCSV() {
         val data = dbHelper.getAllDishes().joinToString("\n") {
             "${it.name},${it.type},${it.calories},${it.description}"
         }
-        val file = File(getExternalFilesDir(null), "dishes.csv")
+        val file = java.io.File(getExternalFilesDir(null), "dishes.csv")
         file.writeText(data)
     }
 
     private suspend fun loadCSV() {
         withContext(Dispatchers.IO) {
-            val file = File(getExternalFilesDir(null), "dishes.csv")
-            if (!file.exists()) {
-                throw FileNotFoundException("CSV не найден")
-            }
+            val file = java.io.File(getExternalFilesDir(null), "dishes.csv")
+            if (!file.exists()) throw FileNotFoundException("CSV не найден")
 
             val text = file.readText()
             val lines = text.split("\n").filter { it.isNotBlank() }
@@ -323,13 +324,13 @@ class MainActivity : AppCompatActivity() {
         val data = dbHelper.getAllDishes().joinToString("|") {
             "${it.name},${it.type},${it.calories},${it.description}"
         }
-        val file = File(getExternalFilesDir(null), "dishes.bin")
+        val file = java.io.File(getExternalFilesDir(null), "dishes.bin")
         ObjectOutputStream(FileOutputStream(file)).use { it.writeObject(data) }
         Toast.makeText(this, "Бинарный файл сохранён", Toast.LENGTH_SHORT).show()
     }
 
     private fun loadBinary() {
-        val file = File(getExternalFilesDir(null), "dishes.bin")
+        val file = java.io.File(getExternalFilesDir(null), "dishes.bin")
         if (!file.exists()) {
             Toast.makeText(this, "Бинарный файл не найден", Toast.LENGTH_SHORT).show()
             return
@@ -374,5 +375,4 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         workerThread?.interrupt()
     }
-
 }

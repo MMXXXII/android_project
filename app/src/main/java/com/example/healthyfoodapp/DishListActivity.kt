@@ -22,7 +22,6 @@ class DishListActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_dish_list)
 
-        // Инициализация dbHelper и открытие базы данных
         dbHelper = DishDatabaseHelper(this)
         dbHelper.open()
 
@@ -31,7 +30,7 @@ class DishListActivity : AppCompatActivity() {
 
         loadDishesFromDatabase()
 
-        adapter = DishAdapter(dishes, dbHelper)  // Передайте dbHelper
+        adapter = DishAdapter(dishes, dbHelper)
         recyclerView.layoutManager = GridLayoutManager(this, 2)
         recyclerView.adapter = adapter
 
@@ -44,7 +43,6 @@ class DishListActivity : AppCompatActivity() {
         dishes.addAll(dbHelper.getAllDishes())
     }
 
-    // Редактирование блюда
     fun editDish(position: Int) {
         val dish = dishes[position]
         val dialogView = layoutInflater.inflate(R.layout.dialog_edit_dish, null)
@@ -72,10 +70,9 @@ class DishListActivity : AppCompatActivity() {
             .show()
     }
 
-    // Адаптер для отображения блюд в RecyclerView
     class DishAdapter(
         private val dishes: MutableList<Dish>,
-        private val dbHelper: DishDatabaseHelper  // Добавлен параметр
+        private val dbHelper: DishDatabaseHelper
     ) : RecyclerView.Adapter<DishAdapter.DishViewHolder>() {
 
         inner class DishViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
