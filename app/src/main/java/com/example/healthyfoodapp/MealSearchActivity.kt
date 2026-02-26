@@ -45,7 +45,7 @@ class MealSearchActivity : AppCompatActivity() {
         tvResult = findViewById(R.id.tvSearchResult)
         tvCounter = findViewById(R.id.tvCounter)
 
-        repository = MealRepository(NetworkModule.provideMealApiService(cacheDir))
+        repository = MealRepository(NetworkModule.provideMealApiService(this))
         dbHelper = DishDatabaseHelper(this)
         dbHelper.open()
 

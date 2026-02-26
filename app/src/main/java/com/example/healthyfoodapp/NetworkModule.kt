@@ -1,5 +1,7 @@
 package com.example.healthyfoodapp.network
 
+import android.content.Context
+import android.net.ConnectivityManager
 import okhttp3.Cache
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
@@ -13,8 +15,13 @@ object NetworkModule {
     private const val BASE_URL = "https://www.themealdb.com/api/json/v1/1/"
     private const val CACHE_SIZE = 10L * 1024 * 1024
 
-    fun provideOkHttpClient(cacheDir: File): OkHttpClient {
-        val cache = Cache(File(cacheDir, "http_cache"), CACHE_SIZE)
+    private fun isNetworkAvailable(context: Context): Boolean {
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        return cm.activeNetworkInfo?.isConnected == true
+    }
+
+    fun provideOkHttpClient(context: Context): OkHttpClient {
+        val cache = Cache(File(context.cacheDir, "http_cache"), CACHE_SIZE)
 
         return OkHttpClient.Builder()
             .protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1))
@@ -23,23 +30,34 @@ object NetworkModule {
             .readTimeout(15, TimeUnit.SECONDS)
             .writeTimeout(15, TimeUnit.SECONDS)
             .addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .header("Cache-Control", "public, max-age=60")
-                    .build()
+                val request = if (isNetworkAvailable(context)) {
+                    chain.request().newBuilder()
+                        .header("Cache-Control", "public, max-age=86400")
+                        .build()
+                } else {
+                    chain.request().newBuilder()
+                        .header("Cache-Control", "public, only-if-cached, max-stale=${60 * 60 * 24 * 7}")
+                        .build()
+                }
                 chain.proceed(request)
+            }
+            .addNetworkInterceptor { chain ->
+                chain.proceed(chain.request()).newBuilder()
+                    .header("Cache-Control", "public, max-age=86400")
+                    .build()
             }
             .build()
     }
 
-    fun provideRetrofit(cacheDir: File): Retrofit {
+    fun provideRetrofit(context: Context): Retrofit {
         return Retrofit.Builder()
             .baseUrl(BASE_URL)
-            .client(provideOkHttpClient(cacheDir))
+            .client(provideOkHttpClient(context))
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }
 
-    fun provideMealApiService(cacheDir: File): MealApiService {
-        return provideRetrofit(cacheDir).create(MealApiService::class.java)
+    fun provideMealApiService(context: Context): MealApiService {
+        return provideRetrofit(context).create(MealApiService::class.java)
     }
 }
