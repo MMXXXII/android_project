@@ -1,3 +1,5 @@
+package com.example.healthyfoodapp.data.local
+
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
@@ -22,14 +24,14 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null
     }
 
     override fun onCreate(db: SQLiteDatabase) {
-        val createCategoriesTable = """
+        db.execSQL("""
             CREATE TABLE $TABLE_CATEGORIES (
                 $COLUMN_CATEGORY_ID INTEGER PRIMARY KEY AUTOINCREMENT,
                 $COLUMN_CATEGORY_NAME TEXT NOT NULL UNIQUE
             )
-        """.trimIndent()
+        """.trimIndent())
 
-        val createDishesTable = """
+        db.execSQL("""
             CREATE TABLE $TABLE_DISHES (
                 $COLUMN_DISH_ID INTEGER PRIMARY KEY AUTOINCREMENT,
                 $COLUMN_DISH_NAME TEXT NOT NULL,
@@ -39,10 +41,7 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null
                 $COLUMN_DISH_CATEGORY_ID INTEGER,
                 FOREIGN KEY($COLUMN_DISH_CATEGORY_ID) REFERENCES $TABLE_CATEGORIES($COLUMN_CATEGORY_ID)
             )
-        """.trimIndent()
-
-        db.execSQL(createCategoriesTable)
-        db.execSQL(createDishesTable)
+        """.trimIndent())
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {

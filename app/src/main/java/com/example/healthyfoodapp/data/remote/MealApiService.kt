@@ -1,12 +1,14 @@
-package com.example.healthyfoodapp.network
+package com.example.healthyfoodapp.data.remote
 
 import com.google.gson.annotations.SerializedName
+import retrofit2.http.GET
+import retrofit2.http.Query
 
 data class MealSearchResponse(
-    @SerializedName("meals") val meals: List<MealPreview>?
+    @SerializedName("meals") val meals: List<MealPreviewDto>?
 )
 
-data class MealPreview(
+data class MealPreviewDto(
     @SerializedName("idMeal") val id: String,
     @SerializedName("strMeal") val name: String,
     @SerializedName("strCategory") val category: String,
@@ -14,10 +16,10 @@ data class MealPreview(
 )
 
 data class MealDetailResponse(
-    @SerializedName("meals") val meals: List<MealDetail>?
+    @SerializedName("meals") val meals: List<MealDetailDto>?
 )
 
-data class MealDetail(
+data class MealDetailDto(
     @SerializedName("idMeal") val id: String,
     @SerializedName("strMeal") val name: String,
     @SerializedName("strCategory") val category: String,
@@ -34,13 +36,19 @@ data class MealDetail(
     @SerializedName("strMeasure4") val measure4: String?,
     @SerializedName("strMeasure5") val measure5: String?
 ) {
-    fun getIngredientsList(): List<String> {
-        return listOfNotNull(
-            ingredient1?.takeIf { it.isNotBlank() }?.let { "$it - ${measure1.orEmpty().trim()}" },
-            ingredient2?.takeIf { it.isNotBlank() }?.let { "$it - ${measure2.orEmpty().trim()}" },
-            ingredient3?.takeIf { it.isNotBlank() }?.let { "$it - ${measure3.orEmpty().trim()}" },
-            ingredient4?.takeIf { it.isNotBlank() }?.let { "$it - ${measure4.orEmpty().trim()}" },
-            ingredient5?.takeIf { it.isNotBlank() }?.let { "$it - ${measure5.orEmpty().trim()}" }
-        )
-    }
+    fun getIngredientsList(): List<String> = listOfNotNull(
+        ingredient1?.takeIf { it.isNotBlank() }?.let { "$it - ${measure1.orEmpty().trim()}" },
+        ingredient2?.takeIf { it.isNotBlank() }?.let { "$it - ${measure2.orEmpty().trim()}" },
+        ingredient3?.takeIf { it.isNotBlank() }?.let { "$it - ${measure3.orEmpty().trim()}" },
+        ingredient4?.takeIf { it.isNotBlank() }?.let { "$it - ${measure4.orEmpty().trim()}" },
+        ingredient5?.takeIf { it.isNotBlank() }?.let { "$it - ${measure5.orEmpty().trim()}" }
+    )
+}
+
+interface MealApiService {
+    @GET("search.php")
+    suspend fun searchMeals(@Query("s") query: String): MealSearchResponse
+
+    @GET("lookup.php")
+    suspend fun getMealById(@Query("i") id: String): MealDetailResponse
 }

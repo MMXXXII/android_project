@@ -14,19 +14,11 @@
         android:textStyle="bold"
         android:layout_marginBottom="16dp" />
 
-    <!-- RecyclerView для отображения списка блюд -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvDishList"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:layout_marginBottom="16dp" />
-
-    <Button
-        android:id="@+id/btnBack"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="← Вернуться"
-        android:layout_gravity="center_horizontal" />
 
 </LinearLayout>

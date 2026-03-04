@@ -1,4 +1,4 @@
-package com.example.healthyfoodapp.network
+package com.example.healthyfoodapp.data.remote
 
 import android.content.Context
 import android.net.ConnectivityManager
@@ -22,7 +22,6 @@ object NetworkModule {
 
     fun provideOkHttpClient(context: Context): OkHttpClient {
         val cache = Cache(File(context.cacheDir, "http_cache"), CACHE_SIZE)
-
         return OkHttpClient.Builder()
             .protocols(listOf(Protocol.HTTP_2, Protocol.HTTP_1_1))
             .cache(cache)
@@ -32,32 +31,26 @@ object NetworkModule {
             .addInterceptor { chain ->
                 val request = if (isNetworkAvailable(context)) {
                     chain.request().newBuilder()
-                        .header("Cache-Control", "public, max-age=86400")
-                        .build()
+                        .header("Cache-Control", "public, max-age=86400").build()
                 } else {
                     chain.request().newBuilder()
-                        .header("Cache-Control", "public, only-if-cached, max-stale=${60 * 60 * 24 * 7}")
-                        .build()
+                        .header("Cache-Control", "public, only-if-cached, max-stale=${60 * 60 * 24 * 7}").build()
                 }
                 chain.proceed(request)
             }
             .addNetworkInterceptor { chain ->
                 chain.proceed(chain.request()).newBuilder()
-                    .header("Cache-Control", "public, max-age=86400")
-                    .build()
+                    .header("Cache-Control", "public, max-age=86400").build()
             }
             .build()
     }
 
-    fun provideRetrofit(context: Context): Retrofit {
+    fun provideMealApiService(context: Context): MealApiService {
         return Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(provideOkHttpClient(context))
             .addConverterFactory(GsonConverterFactory.create())
             .build()
-    }
-
-    fun provideMealApiService(context: Context): MealApiService {
-        return provideRetrofit(context).create(MealApiService::class.java)
+            .create(MealApiService::class.java)
     }
 }
