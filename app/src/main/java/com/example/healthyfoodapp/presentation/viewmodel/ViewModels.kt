@@ -5,11 +5,29 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.healthyfoodapp.domain.model.Dish
-import com.example.healthyfoodapp.domain.usecase.*
-import kotlinx.coroutines.*
+import com.example.healthyfoodapp.domain.model.MealDetail
+import com.example.healthyfoodapp.domain.model.MealPreview
+import com.example.healthyfoodapp.domain.usecase.AddDishUseCase
+import com.example.healthyfoodapp.domain.usecase.DeleteDishUseCase
+import com.example.healthyfoodapp.domain.usecase.GetAllDishesUseCase
+import com.example.healthyfoodapp.domain.usecase.SaveMealToCatalogUseCase
+import com.example.healthyfoodapp.domain.usecase.SearchMealsUseCase
+import com.example.healthyfoodapp.domain.usecase.UpdateDishUseCase
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import javax.inject.Inject
 import kotlin.random.Random
 
-class AddDishViewModel(private val addDishUseCase: AddDishUseCase) : ViewModel() {
+@HiltViewModel
+class AddDishViewModel @Inject constructor(
+    private val addDishUseCase: AddDishUseCase
+) : ViewModel() {
 
     private val _saveResult = MutableLiveData<String>()
     val saveResult: LiveData<String> = _saveResult
@@ -24,7 +42,8 @@ class AddDishViewModel(private val addDishUseCase: AddDishUseCase) : ViewModel()
     }
 }
 
-class DishListViewModel(
+@HiltViewModel
+class DishListViewModel @Inject constructor(
     private val getAllDishesUseCase: GetAllDishesUseCase,
     private val deleteDishUseCase: DeleteDishUseCase,
     private val updateDishUseCase: UpdateDishUseCase
@@ -48,7 +67,8 @@ class DishListViewModel(
     }
 }
 
-class DataProcessingViewModel(
+@HiltViewModel
+class DataProcessingViewModel @Inject constructor(
     private val getAllDishesUseCase: GetAllDishesUseCase
 ) : ViewModel() {
 
@@ -195,7 +215,8 @@ class DataProcessingViewModel(
     }
 }
 
-class MealSearchViewModel(
+@HiltViewModel
+class MealSearchViewModel @Inject constructor(
     private val searchMealsUseCase: SearchMealsUseCase,
     private val saveMealToCatalogUseCase: SaveMealToCatalogUseCase
 ) : ViewModel() {
@@ -204,9 +225,9 @@ class MealSearchViewModel(
         object Idle : State()
         object Loading : State()
         data class Results(
-            val previews: List<com.example.healthyfoodapp.domain.model.MealPreview>,
+            val previews: List<MealPreview>,
             val currentIndex: Int,
-            val detail: com.example.healthyfoodapp.domain.model.MealDetail?
+            val detail: MealDetail?
         ) : State()
         data class Error(val message: String) : State()
         object Cancelled : State()
@@ -217,7 +238,7 @@ class MealSearchViewModel(
     val state: LiveData<State> = _state
 
     private var searchJob: Job? = null
-    private val previews = mutableListOf<com.example.healthyfoodapp.domain.model.MealPreview>()
+    private val previews = mutableListOf<MealPreview>()
     private var currentIndex = 0
 
     fun search(query: String) {
@@ -243,8 +264,13 @@ class MealSearchViewModel(
         }
     }
 
-    fun navigatePrev() { if (currentIndex > 0) loadDetail(currentIndex - 1) }
-    fun navigateNext() { if (currentIndex < previews.size - 1) loadDetail(currentIndex + 1) }
+    fun navigatePrev() {
+        if (currentIndex > 0) loadDetail(currentIndex - 1)
+    }
+
+    fun navigateNext() {
+        if (currentIndex < previews.size - 1) loadDetail(currentIndex + 1)
+    }
 
     fun cancelSearch() {
         searchJob?.cancel()

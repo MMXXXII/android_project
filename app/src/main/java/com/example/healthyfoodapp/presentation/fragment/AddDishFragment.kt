@@ -4,90 +4,76 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.*
+import android.widget.RadioButton
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProvider
-import com.example.healthyfoodapp.R
-import com.example.healthyfoodapp.data.repository.DishRepositoryImpl
-import com.example.healthyfoodapp.domain.usecase.AddDishUseCase
-import com.example.healthyfoodapp.domain.usecase.GetAllDishesUseCase
+import androidx.fragment.app.viewModels
+import com.example.healthyfoodapp.databinding.FragmentAddDishBinding
 import com.example.healthyfoodapp.presentation.viewmodel.AddDishViewModel
-import com.example.healthyfoodapp.presentation.viewmodel.AddDishViewModelFactory
 import com.example.healthyfoodapp.presentation.viewmodel.DataProcessingViewModel
-import com.example.healthyfoodapp.presentation.viewmodel.DataProcessingViewModelFactory
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class AddDishFragment : Fragment() {
 
-    private lateinit var addDishViewModel: AddDishViewModel
-    private lateinit var dataProcessingViewModel: DataProcessingViewModel
+    private val addDishViewModel: AddDishViewModel by viewModels()
+    private val dataProcessingViewModel: DataProcessingViewModel by viewModels()
+
+    private var _binding: FragmentAddDishBinding? = null
+    private val binding get() = _binding!!
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View = inflater.inflate(R.layout.fragment_add_dish, container, false)
+    ): View {
+        _binding = FragmentAddDishBinding.inflate(inflater, container, false)
+        binding.viewModel = addDishViewModel
+        binding.lifecycleOwner = viewLifecycleOwner
+        return binding.root
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val repository = DishRepositoryImpl(requireContext())
+        binding.btnCancelCoroutine.isEnabled = false
 
-        addDishViewModel = ViewModelProvider(
-            this, AddDishViewModelFactory(AddDishUseCase(repository))
-        )[AddDishViewModel::class.java]
-
-        dataProcessingViewModel = ViewModelProvider(
-            this, DataProcessingViewModelFactory(GetAllDishesUseCase(repository))
-        )[DataProcessingViewModel::class.java]
-
-        val etName = view.findViewById<EditText>(R.id.etName)
-        val etCalories = view.findViewById<EditText>(R.id.etCalories)
-        val etDescription = view.findViewById<EditText>(R.id.etDescription)
-        val rgCategory = view.findViewById<RadioGroup>(R.id.rgCategory)
-        val tvResult = view.findViewById<TextView>(R.id.tvResult)
-        val tvThreadStatus = view.findViewById<TextView>(R.id.tvThreadStatus)
-        val tvCoroutineStatus = view.findViewById<TextView>(R.id.tvCoroutineStatus)
-        val btnSave = view.findViewById<Button>(R.id.btnSave)
-        val btnProcessDataThread = view.findViewById<Button>(R.id.btnProcessDataThread)
-        val btnCancelThread = view.findViewById<Button>(R.id.btnCancelThread)
-        val btnProcessDataCoroutine = view.findViewById<Button>(R.id.btnProcessDataCoroutine)
-        val btnCancelCoroutine = view.findViewById<Button>(R.id.btnCancelCoroutine)
-
-        btnCancelCoroutine.isEnabled = false
-
-        btnSave.setOnClickListener {
-            val name = etName.text.toString().trim()
-            val calories = etCalories.text.toString().trim()
-            val description = etDescription.text.toString().trim()
-            val selectedId = rgCategory.checkedRadioButtonId
+        binding.btnSave.setOnClickListener {
+            val name = binding.etName.text.toString().trim()
+            val calories = binding.etCalories.text.toString().trim()
+            val description = binding.etDescription.text.toString().trim()
+            val selectedId = binding.rgCategory.checkedRadioButtonId
             val type = view.findViewById<RadioButton>(selectedId)?.text?.toString() ?: "Завтрак"
             addDishViewModel.saveDish(name, type, calories, description)
         }
 
         addDishViewModel.saveResult.observe(viewLifecycleOwner) { result ->
-            tvResult.text = result
             if (!result.startsWith("Ошибка")) {
-                etName.text.clear()
-                etCalories.text.clear()
-                etDescription.text.clear()
+                binding.etName.text.clear()
+                binding.etCalories.text.clear()
+                binding.etDescription.text.clear()
             }
         }
 
-        btnProcessDataThread.setOnClickListener { dataProcessingViewModel.startThreadProcessing() }
-        btnCancelThread.setOnClickListener { dataProcessingViewModel.cancelThreadProcessing() }
+        binding.btnProcessDataThread.setOnClickListener { dataProcessingViewModel.startThreadProcessing() }
+        binding.btnCancelThread.setOnClickListener { dataProcessingViewModel.cancelThreadProcessing() }
 
         dataProcessingViewModel.threadStatus.observe(viewLifecycleOwner) {
-            tvThreadStatus.text = it
+            binding.tvThreadStatus.text = it
         }
 
-        btnProcessDataCoroutine.setOnClickListener { dataProcessingViewModel.startCoroutineProcessing() }
-        btnCancelCoroutine.setOnClickListener { dataProcessingViewModel.cancelCoroutineProcessing() }
+        binding.btnProcessDataCoroutine.setOnClickListener { dataProcessingViewModel.startCoroutineProcessing() }
+        binding.btnCancelCoroutine.setOnClickListener { dataProcessingViewModel.cancelCoroutineProcessing() }
 
         dataProcessingViewModel.coroutineStatus.observe(viewLifecycleOwner) {
-            tvCoroutineStatus.text = it
+            binding.tvCoroutineStatus.text = it
         }
 
         dataProcessingViewModel.coroutineCancelEnabled.observe(viewLifecycleOwner) {
-            btnCancelCoroutine.isEnabled = it
+            binding.btnCancelCoroutine.isEnabled = it
         }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 }

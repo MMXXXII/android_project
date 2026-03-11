@@ -6,58 +6,67 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
-import android.widget.Button
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
 import com.example.healthyfoodapp.R
-import com.example.healthyfoodapp.data.repository.DishRepositoryImpl
+import com.example.healthyfoodapp.databinding.ActivityMainBinding
 import com.example.healthyfoodapp.domain.model.Dish
+import com.example.healthyfoodapp.domain.repository.DishRepository
 import com.example.healthyfoodapp.domain.usecase.GetAllDishesUseCase
 import com.example.healthyfoodapp.presentation.fragment.AddDishFragment
 import com.example.healthyfoodapp.presentation.fragment.DishListFragment
 import com.example.healthyfoodapp.presentation.fragment.MealSearchFragment
-import com.google.android.material.navigation.NavigationView
-import kotlinx.coroutines.*
-import java.io.*
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.ObjectInputStream
+import java.io.ObjectOutputStream
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var drawerLayout: DrawerLayout
-    private lateinit var navigationView: NavigationView
+    private lateinit var binding: ActivityMainBinding
 
-    private val dishRepository by lazy { DishRepositoryImpl(this) }
+    @Inject
+    lateinit var dishRepository: DishRepository
+
     private val mainScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-
-        drawerLayout = findViewById(R.id.drawerLayout)
-        navigationView = findViewById(R.id.navigationView)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         if (savedInstanceState == null) {
             navigateTo(AddDishFragment(), addToBackStack = false)
         }
 
-        findViewById<Button>(R.id.btnMenu).setOnClickListener {
-            drawerLayout.openDrawer(navigationView)
+        binding.btnMenu.setOnClickListener {
+            binding.drawerLayout.openDrawer(binding.navigationView)
         }
 
-        navigationView.setNavigationItemSelectedListener { item ->
-            drawerLayout.closeDrawers()
+        binding.navigationView.setNavigationItemSelectedListener { item ->
+            binding.drawerLayout.closeDrawers()
             when (item.itemId) {
-                R.id.nav_add_dish      -> navigateTo(AddDishFragment(), addToBackStack = false)
-                R.id.nav_my_catalog    -> navigateTo(DishListFragment())
-                R.id.nav_search_api    -> navigateTo(MealSearchFragment())
-                R.id.nav_save_csv      -> Thread { saveCSV() }.start()
-                R.id.nav_load_csv      -> mainScope.launch { loadCSV() }
-                R.id.nav_save_bin      -> saveBinary()
-                R.id.nav_load_bin      -> loadBinary()
-                R.id.nav_save_media    -> checkPermissionAndSaveMedia()
-                R.id.nav_exit          -> finish()
+                R.id.nav_add_dish   -> navigateTo(AddDishFragment(), addToBackStack = false)
+                R.id.nav_my_catalog -> navigateTo(DishListFragment())
+                R.id.nav_search_api -> navigateTo(MealSearchFragment())
+                R.id.nav_save_csv   -> Thread { saveCSV() }.start()
+                R.id.nav_load_csv   -> mainScope.launch { loadCSV() }
+                R.id.nav_save_bin   -> saveBinary()
+                R.id.nav_load_bin   -> loadBinary()
+                R.id.nav_save_media -> checkPermissionAndSaveMedia()
+                R.id.nav_exit       -> finish()
             }
             true
         }
@@ -69,7 +78,6 @@ class MainActivity : AppCompatActivity() {
         if (addToBackStack) tx.addToBackStack(null)
         tx.commit()
     }
-
 
     private fun saveCSV() {
         try {
@@ -96,11 +104,15 @@ class MainActivity : AppCompatActivity() {
                 val parts = line.split(",")
                 if (parts.size >= 4) {
                     val categoryId = dishRepository.getOrCreateCategoryId(parts[1])
-                    dishRepository.addDish(Dish(
-                        name = parts[0], type = parts[1],
-                        calories = parts[2], description = parts.getOrNull(3) ?: "",
-                        categoryId = categoryId
-                    ))
+                    dishRepository.addDish(
+                        Dish(
+                            name = parts[0],
+                            type = parts[1],
+                            calories = parts[2],
+                            description = parts.getOrNull(3) ?: "",
+                            categoryId = categoryId
+                        )
+                    )
                 }
             }
             withContext(Dispatchers.Main) {
@@ -134,11 +146,15 @@ class MainActivity : AppCompatActivity() {
                 val parts = item.split(",")
                 if (parts.size >= 4) {
                     val categoryId = dishRepository.getOrCreateCategoryId(parts[1])
-                    dishRepository.addDish(Dish(
-                        name = parts[0], type = parts[1],
-                        calories = parts[2], description = parts.getOrNull(3) ?: "",
-                        categoryId = categoryId
-                    ))
+                    dishRepository.addDish(
+                        Dish(
+                            name = parts[0],
+                            type = parts[1],
+                            calories = parts[2],
+                            description = parts.getOrNull(3) ?: "",
+                            categoryId = categoryId
+                        )
+                    )
                 }
             }
             Toast.makeText(this, "Загружено из бинарного файла!", Toast.LENGTH_SHORT).show()
@@ -150,9 +166,11 @@ class MainActivity : AppCompatActivity() {
     private fun checkPermissionAndSaveMedia() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
             ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-            != PackageManager.PERMISSION_GRANTED) {
+            != PackageManager.PERMISSION_GRANTED
+        ) {
             ActivityCompat.requestPermissions(
-                this, arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 100)
+                this, arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 100
+            )
             return
         }
         saveToMediaStore()
@@ -169,7 +187,9 @@ class MainActivity : AppCompatActivity() {
                 put(MediaStore.Downloads.MIME_TYPE, "text/plain")
             }
             val uri = contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
-            uri?.let { contentResolver.openOutputStream(it)?.use { os -> os.write(data.toByteArray()) } }
+            uri?.let {
+                contentResolver.openOutputStream(it)?.use { os -> os.write(data.toByteArray()) }
+            }
             Toast.makeText(this, "Файл сохранён в Загрузки", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             Toast.makeText(this, "Ошибка: ${e.message}", Toast.LENGTH_SHORT).show()
